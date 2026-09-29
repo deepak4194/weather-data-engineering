@@ -1,8 +1,10 @@
 import logging
 
+import pandas as pd
 
 from ingestion.weather_api import load_cities, get_weather
 from snowflake.load_weather import load_weather_records
+from validation.validate_weather import validate_weather_data
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +39,18 @@ def run_pipeline():
             f"Collected {len(all_weather_records)} weather records"
         )
 
+        weather_df = pd.DataFrame(all_weather_records)
+
+        validation_errors = validate_weather_data(weather_df)
+
+        if validation_errors:
+            for error in validation_errors:
+                logger.error(error)
+
+            raise ValueError("Weather data validation failed.")
+
+        logger.info("Weather data validation passed")
+
         load_weather_records(all_weather_records)
 
         logger.info("Weather pipeline completed successfully!")
@@ -45,6 +59,6 @@ def run_pipeline():
         logger.exception("Weather pipeline failed")
         raise
 
-    
+
 if __name__ == "__main__":
     run_pipeline()
