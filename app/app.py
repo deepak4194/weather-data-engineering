@@ -35,36 +35,32 @@ def load_data():
 
     connection = get_connection()
 
-    try:
-        city_summary = pd.read_sql(
-            CITY_SUMMARY_QUERY,
-            connection,
-        )
+    city_summary = connection.query(
+        CITY_SUMMARY_QUERY,
+        ttl=300,
+    )
 
-        daily_summary = pd.read_sql(
-            DAILY_SUMMARY_QUERY,
-            connection,
-        )
+    daily_summary = connection.query(
+        DAILY_SUMMARY_QUERY,
+        ttl=300,
+    )
 
-        latest_weather = pd.read_sql(
-            LATEST_WEATHER_QUERY,
-            connection,
-        )
+    latest_weather = connection.query(
+        LATEST_WEATHER_QUERY,
+        ttl=300,
+    )
 
-        weather_trend = pd.read_sql(
-            WEATHER_TREND_QUERY,
-            connection,
-        )
+    weather_trend = connection.query(
+        WEATHER_TREND_QUERY,
+        ttl=300,
+    )
 
-        return (
-            city_summary,
-            daily_summary,
-            latest_weather,
-            weather_trend,
-        )
-
-    finally:
-        connection.close()
+    return (
+        city_summary,
+        daily_summary,
+        latest_weather,
+        weather_trend,
+    )
 
 
 # ---------------------------------------------------------
@@ -243,15 +239,6 @@ st.divider()
 # ---------------------------------------------------------
 
 st.subheader("🏙️ City Weather Comparison")
-
-
-chart_data = city_summary.set_index("CITY")[
-    [
-        "AVG_TEMPERATURE",
-        "AVG_HUMIDITY",
-        "MAX_WIND_SPEED",
-    ]
-]
 
 
 tab1, tab2, tab3 = st.tabs(
