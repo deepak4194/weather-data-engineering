@@ -1,0 +1,32 @@
+[
+    {
+        "city": "Hyderabad",
+        "latitude": 17.3850,
+        "longitude": 78.4867
+    },
+    {
+        "city": "Vijayawada",
+        "latitude": 16.5062,
+        "longitude": 80.6480
+    },
+    {
+        "city": "Chennai",
+        "latitude": 13.0827,
+        "longitude": 80.2707
+    },
+    {
+        "city": "Bengaluru",
+        "latitude": 12.9716,
+        "longitude": 77.5946
+    },
+    {
+        "city": "Mumbai",
+        "latitude": 19.0760,
+        "longitude": 72.8777
+    },
+    {
+        "city": "Delhi",
+        "latitude": 28.6139,
+        "longitude": 77.2090
+    }
+]
