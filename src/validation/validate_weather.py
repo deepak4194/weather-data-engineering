@@ -1,26 +1,27 @@
+import json
 import pandas as pd
 
 
 FILE_PATH = "data/weather_data.csv"
+CITIES_FILE_PATH = "config/cities.json"
 
-EXPECTED_CITIES = {
-    "Hyderabad",
-    "Vijayawada",
-    "Chennai",
-    "Bengaluru",
-    "Mumbai",
-    "Delhi"
-}
+
+def load_expected_cities():
+    with open(CITIES_FILE_PATH, "r", encoding="utf-8") as file:
+        cities = json.load(file)
+
+    return {
+        city["city"].upper()
+        for city in cities
+    }
 
 
 def validate_weather_data(df):
     errors = []
 
-    # Check 1: records exist
     if df.empty:
         errors.append("Dataset contains no records.")
 
-    # Check 2: required columns exist
     required_columns = {
         "city",
         "weather_time",
@@ -39,11 +40,9 @@ def validate_weather_data(df):
             f"Missing columns: {sorted(missing_columns)}"
         )
 
-    # Stop further checks if required columns are missing
     if errors:
         return errors
 
-    # Check 3: missing values
     missing_values = df[list(required_columns)].isnull().sum()
 
     columns_with_missing_values = (
@@ -56,17 +55,20 @@ def validate_weather_data(df):
             + str(columns_with_missing_values.to_dict())
         )
 
-    # Check 4: expected cities
-    actual_cities = set(df["city"].unique())
+    expected_cities = load_expected_cities()
 
-    missing_cities = EXPECTED_CITIES - actual_cities
+    actual_cities = {
+        city.upper()
+        for city in df["city"].dropna().unique()
+    }
+
+    missing_cities = expected_cities - actual_cities
 
     if missing_cities:
         errors.append(
             f"Missing expected cities: {sorted(missing_cities)}"
         )
 
-    # Check 5: duplicate records
     duplicate_count = df.duplicated().sum()
 
     if duplicate_count > 0:

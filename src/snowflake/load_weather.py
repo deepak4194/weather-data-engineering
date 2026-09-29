@@ -5,7 +5,9 @@ from snowflake.connector.pandas_tools import write_pandas
 
 from .connection import get_snowflake_connection
 
+
 logger = logging.getLogger(__name__)
+
 
 def load_weather_records(weather_records):
     if not weather_records:
@@ -50,17 +52,30 @@ def load_weather_records(weather_records):
         )
 
         if not success:
-            raise RuntimeError("Failed to bulk load weather data.")
+            raise RuntimeError(
+                "Failed to bulk load weather data."
+            )
 
         logger.info(
-    f"Bulk loaded {rows_loaded} records into temporary table"
-)
+            f"Bulk loaded {rows_loaded} records into temporary table"
+        )
 
         merge_query = """
             MERGE INTO WEATHER_DB.RAW.WEATHER_RAW AS target
+
             USING WEATHER_LOAD_TEMP AS source
+
             ON target.CITY = source.CITY
                AND target.WEATHER_TIME = source.WEATHER_TIME
+
+            WHEN MATCHED THEN
+                UPDATE SET
+                    target.TEMPERATURE = source.TEMPERATURE,
+                    target.HUMIDITY = source.HUMIDITY,
+                    target.PRESSURE = source.PRESSURE,
+                    target.WIND_SPEED = source.WIND_SPEED,
+                    target.WEATHER_CODE = source.WEATHER_CODE,
+                    target.PRECIPITATION = source.PRECIPITATION
 
             WHEN NOT MATCHED THEN
                 INSERT (
@@ -73,6 +88,7 @@ def load_weather_records(weather_records):
                     WEATHER_CODE,
                     PRECIPITATION
                 )
+
                 VALUES (
                     source.CITY,
                     source.WEATHER_TIME,
@@ -86,11 +102,12 @@ def load_weather_records(weather_records):
         """
 
         cursor.execute(merge_query)
+
         connection.commit()
 
         logger.info(
-    f"Processed {len(weather_records)} weather records"
-)
+            f"Processed {len(weather_records)} weather records"
+        )
 
     finally:
         cursor.close()
