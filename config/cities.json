@@ -43,5 +43,10 @@
           "city": "Jaipur",
           "latitude": 26.9124,
           "longitude": 75.7873
+    },
+    {
+          "city": "Machilipatnam",
+          "latitude": 16.1875,
+          "longitude": 81.1389
     }
 ]
