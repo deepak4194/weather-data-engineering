@@ -48,5 +48,10 @@
           "city": "Machilipatnam",
           "latitude": 16.1875,
           "longitude": 81.1389
+    },
+    {
+          "city": "Visakhapatnam",
+          "latitude": 17.6868,
+          "longitude": 83.2185
     }
 ]
