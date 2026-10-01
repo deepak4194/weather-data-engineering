@@ -59,5 +59,7 @@
           "latitude":23.0225,
           "longitude":72.5714
     },
-    {"city":"Kochi","latitude":9.9312,"longitude":76.2673}
+    {"city":"Kochi","latitude":9.9312,"longitude":76.2673},
+    {"city":"Leh","latitude":34.1526,"longitude":77.5771},
+    {"city":"Lucknow","latitude":26.8467,"longitude":80.9462}
 ]
