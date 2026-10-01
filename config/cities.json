@@ -58,5 +58,6 @@
           "city":"Ahmedabad",
           "latitude":23.0225,
           "longitude":72.5714
-    }
+    },
+    {"city":"Kochi","latitude":9.9312,"longitude":76.2673}
 ]
