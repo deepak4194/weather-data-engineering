@@ -1,125 +1,163 @@
 import json
 import logging
-import csv
+import time
+
 import requests
+
+
+API_URL = "https://api.open-meteo.com/v1/forecast"
+CITIES_FILE = "config/cities.json"
 
 logger = logging.getLogger(__name__)
 
-API_URL = "https://api.open-meteo.com/v1/forecast"
 
 def load_cities():
-    with open("config/cities.json", "r") as file:
-        cities = json.load(file)
+    """Load city configuration from cities.json."""
+    with open(CITIES_FILE, "r", encoding="utf-8") as file:
+        return json.load(file)
 
-    return cities
 
-def save_to_csv(weather_records, file_path):
-    if not weather_records:
-        print("No weather records to save.")
-        return
+def get_weather(city, latitude, longitude, max_retries=3):
+    """Fetch weather data for a city with retry handling."""
 
-    fieldnames = [
-        "city",
-        "weather_time",
-        "temperature",
-        "humidity",
-        "pressure",
-        "wind_speed",
-        "weather_code",
-        "precipitation"
-    ]
-
-    with open(file_path, "w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(
-            file,
-            fieldnames=fieldnames
-        )
-
-        writer.writeheader()
-        writer.writerows(weather_records)
-
-    print(f"Saved {len(weather_records)} records to {file_path}")
-
-def get_weather(city, latitude, longitude):
     params = {
         "latitude": latitude,
         "longitude": longitude,
-        "hourly": [
-            "temperature_2m",
-            "relative_humidity_2m",
-            "pressure_msl",
-            "wind_speed_10m",
-            "weather_code",
+        "hourly": (
+            "temperature_2m,"
+            "relative_humidity_2m,"
+            "pressure_msl,"
+            "wind_speed_10m,"
+            "weather_code,"
             "precipitation"
-        ],
-        "timezone": "Asia/Kolkata"
+        ),
+        "forecast_days": 7,
+        "timezone": "auto"
     }
 
-    response = requests.get(API_URL, params=params)
+    for attempt in range(1, max_retries + 1):
 
-    logger.info(
-    f"Weather API response for {city}: HTTP {response.status_code}"
-)
+        try:
+            logger.info(
+                f"Fetching weather for {city} "
+                f"(attempt {attempt}/{max_retries})"
+            )
 
-    response.raise_for_status()
+            response = requests.get(
+                API_URL,
+                params=params,
+                timeout=(10, 60)
+            )
 
-    data = response.json()
+            logger.info(
+                f"Weather API response for {city}: "
+                f"HTTP {response.status_code}"
+            )
 
-    hourly_data = data["hourly"]
+            response.raise_for_status()
 
-    times = hourly_data["time"]
-    temperatures = hourly_data["temperature_2m"]
-    humidities = hourly_data["relative_humidity_2m"]
-    pressures = hourly_data["pressure_msl"]
-    wind_speeds = hourly_data["wind_speed_10m"]
-    weather_codes = hourly_data["weather_code"]
-    precipitations = hourly_data["precipitation"]
+            data = response.json()
 
-    weather_records = []
+            hourly = data.get("hourly")
 
-    for i in range(len(times)):
-        record = {
-            "city": city,
-            "weather_time": times[i],
-            "temperature": temperatures[i],
-            "humidity": humidities[i],
-            "pressure": pressures[i],
-            "wind_speed": wind_speeds[i],
-            "weather_code": weather_codes[i],
-            "precipitation": precipitations[i]
-        }
+            if not hourly:
+                raise ValueError(
+                    f"No hourly weather data returned for {city}"
+                )
 
-        weather_records.append(record)
+            weather_records = []
 
-    return weather_records
+            for i in range(len(hourly["time"])):
+
+                weather_records.append({
+                    "city": city,
+                    "weather_time": hourly["time"][i],
+                    "temperature": hourly["temperature_2m"][i],
+                    "humidity": hourly["relative_humidity_2m"][i],
+                    "pressure": hourly["pressure_msl"][i],
+                    "wind_speed": hourly["wind_speed_10m"][i],
+                    "weather_code": hourly["weather_code"][i],
+                    "precipitation": hourly["precipitation"][i]
+                })
+
+            logger.info(
+                f"Successfully collected "
+                f"{len(weather_records)} records for {city}"
+            )
+
+            return weather_records
+
+        except (
+            requests.exceptions.Timeout,
+            requests.exceptions.ConnectionError
+        ) as error:
+
+            logger.warning(
+                f"Network error for {city} "
+                f"(attempt {attempt}/{max_retries}): {error}"
+            )
+
+            if attempt < max_retries:
+                wait_time = attempt * 5
+
+                logger.info(
+                    f"Retrying {city} in {wait_time} seconds..."
+                )
+
+                time.sleep(wait_time)
+
+            else:
+                logger.error(
+                    f"Failed to fetch weather for {city} "
+                    f"after {max_retries} attempts."
+                )
+
+        except requests.exceptions.RequestException as error:
+
+            logger.error(
+                f"Weather API request failed for {city}: {error}"
+            )
+
+            if attempt < max_retries:
+                wait_time = attempt * 5
+                time.sleep(wait_time)
+            else:
+                raise
+
+        except Exception:
+            logger.exception(
+                f"Unexpected error while processing {city}"
+            )
+            raise
+
+    # Important:
+    # Returning an empty list allows the pipeline to continue
+    # processing other cities when a temporary API failure occurs.
+    return []
 
 
 if __name__ == "__main__":
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(message)s"
+    )
+
     cities = load_cities()
 
     all_weather_records = []
 
     for city in cities:
-        city_name = city["city"]
-        latitude = city["latitude"]
-        longitude = city["longitude"]
 
-        weather_records = get_weather(
-            city_name,
-            latitude,
-            longitude
+        records = get_weather(
+            city["city"],
+            city["latitude"],
+            city["longitude"]
         )
 
-        all_weather_records.extend(weather_records)
+        all_weather_records.extend(records)
 
-    print(f"\nTotal weather records collected: {len(all_weather_records)}")
-
-    print("\nFirst 5 records:")
-
-    for record in all_weather_records[:5]:
-        print(record)
-
-    save_to_csv(
-        all_weather_records,
-        "data/weather_data.csv"
+    logger.info(
+        f"Total weather records collected: "
+        f"{len(all_weather_records)}"
     )
