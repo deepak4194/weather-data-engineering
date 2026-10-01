@@ -53,5 +53,10 @@
           "city": "Visakhapatnam",
           "latitude": 17.6868,
           "longitude": 83.2185
+    },
+    {
+          "city":"Ahmedabad",
+          "latitude":23.0225,
+          "longitude":72.5714
     }
 ]
